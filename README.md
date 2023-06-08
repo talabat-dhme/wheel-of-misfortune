@@ -15,10 +15,8 @@ The game is inspired by the [Site Reliability Engineering](https://landing.googl
 *   **Game Master**: The host-coordinator of the session.
 *   **Volunteer**: The trainee on-call engineer.
 
-Feel free to fork the [repository](https://github.com/dastergon/wheel-of-misfortune) or [download](https://github.com/dastergon/wheel-of-misfortune/releases) the stable release.
-Copy the [general\_incidents.json.sample](incidents/general\_incidents.json.sample) file to *general_incidents.json*, inside the [incidents/](incidents/) directory, and insert your incident scenarios into it.
 
-To run the game locally on your computer please navigate the the main directory of the downloaded project i.e. `wheel-of-misfortune-5.0/` and from here start a web server i.e. `python -m SimpleHTTPServer` after that open the http://localhost:8000 using your web browser.
+To run the game locally on your computer please navigate the the main directory of the downloaded project i.e. `wheel-of-misfortune-5.0/` and from here start a web server i.e. `python -m http.server` (Ensure that you have Python3 on your system) after that open the http://localhost:8000 using your web browser.
 
 The file has the following format:
 - **ID**: the unique ID of the outage (you can just auto-increment).
