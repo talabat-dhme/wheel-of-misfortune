@@ -7,7 +7,7 @@
     {
         "ID": "2",
         "title": "Incident 2",
-        "scenario": "You've received alerts that your load balancer is down..."
+        "scenario": "You've received alerts that your pods are down, and unable to restart on their own..."
     },
     {
         "ID": "3",
@@ -17,7 +17,7 @@
     {
         "ID": "4",
         "title": "Incident 4",
-        "scenario": "You've received alerts that your DC eu-west-1 has a power outage..."
+        "scenario": "You've received alerts that Cloudflare is having an outage..."
     },
     {
         "ID": "5",
@@ -28,16 +28,16 @@
     {
         "ID": "6",
         "title": "Incident 6",
-        "scenario": "You've received alerts of high HTTP 5xx error rate..."
+        "scenario": "You've received alerts of high HTTP 5xx error rate on the Checkout MFE..."
     },
     {
         "ID": "7",
         "title": "Incident 7",
-        "scenario": "You've received alerts that there is high query latency in the RPC servers..."
+        "scenario": "You've received alerts that there is high latency for Rider Chat..."
     },
     {
         "ID": "8",
         "title": "Incident 8",
-        "scenario": "You've received an alert that an LDAP client cannot query LDAP server"
+        "scenario": "You've received an emergency email that customers are unable to checkout in EU..."
     }
 ]
