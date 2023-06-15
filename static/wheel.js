@@ -22,7 +22,7 @@ var padding = { top: 20, right: 40, bottom: 0, left: 0 },
 
 var fileName = getURLParameter('file');
 if (fileName === null) {
-    fileName = "./incidents/general_incidents"; // Default file name if no parameter is provided
+    fileName = "general_incidents"; // Default file name if no parameter is provided
 }
 
 d3.selectAll("text")
