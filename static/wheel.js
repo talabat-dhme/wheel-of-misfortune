@@ -6,6 +6,11 @@ function custom_colors(n) {
     return colors[n % colors.length];
 }
 
+function getURLParameter(name) {
+    var params = new URLSearchParams(window.location.search);
+    return params.get(name);
+}
+
 var padding = { top: 20, right: 40, bottom: 0, left: 0 },
     w = 500 - padding.left - padding.right,
     h = 500 - padding.top - padding.bottom,
@@ -15,7 +20,16 @@ var padding = { top: 20, right: 40, bottom: 0, left: 0 },
     picked = 100000,
     oldpick = [];
 
-d3.json("./incidents/general_incidents.json", function (error, data) {
+var fileName = getURLParameter('file');
+if (fileName === null) {
+    fileName = "./incidents/general_incidents"; // Default file name if no parameter is provided
+}
+
+d3.selectAll("text")
+  .style("font-family", "'Open Sans', sans-serif");
+
+d3.json("./incidents/" + fileName + ".json", function (error, data) {
+    console.log(fileName)
     if (error) throw error;
     var svg = d3.select("#wheel")
         .append("svg")

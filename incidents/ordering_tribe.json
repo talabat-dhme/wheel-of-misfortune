@@ -1,0 +1,43 @@
+[
+    {
+        "ID": "1",
+        "title": "Incident 1",
+        "scenario": "You received alerts that your MySQL master does not accept writes..."
+    },
+    {
+        "ID": "2",
+        "title": "Incident 2",
+        "scenario": "You've received alerts that your pods are down, and unable to restart on their own..."
+    },
+    {
+        "ID": "3",
+        "title": "Incident 3",
+        "scenario": "You've received an alert that your Blob storage system is unable to store objects..."
+    },
+    {
+        "ID": "4",
+        "title": "Incident 4",
+        "scenario": "You've received alerts that Cloudflare is having an outage..."
+    },
+    {
+        "ID": "5",
+        "title": "Incident 5",
+        "inkstory": "incidents/redis-story.json",
+        "scenario": "You've received an alert that your Redis server is killed..."
+    },
+    {
+        "ID": "6",
+        "title": "Incident 6",
+        "scenario": "You've received alerts of high HTTP 5xx error rate on the Checkout MFE..."
+    },
+    {
+        "ID": "7",
+        "title": "Incident 7",
+        "scenario": "You've received alerts that there is high latency for Rider Chat..."
+    },
+    {
+        "ID": "8",
+        "title": "Incident 8",
+        "scenario": "You've received an emergency email that customers are unable to checkout in EU..."
+    }
+]
