@@ -29,7 +29,6 @@ d3.selectAll("text")
   .style("font-family", "'Open Sans', sans-serif");
 
 d3.json("./incidents/" + fileName + ".json", function (error, data) {
-    console.log(fileName)
     if (error) throw error;
     var svg = d3.select("#wheel")
         .append("svg")
