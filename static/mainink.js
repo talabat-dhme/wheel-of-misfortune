@@ -37,6 +37,10 @@ function scrollToBottom() {
 
 function continueStory() {
 
+    while (storyContainer.firstChild) {
+        storyContainer.removeChild(storyContainer.firstChild);
+    }
+
     var paragraphIndex = 0;
     var delay = 0.0;
 
