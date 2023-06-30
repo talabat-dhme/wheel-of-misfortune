@@ -14,7 +14,14 @@ jobs:
         run: |
           mkdir -p public/incidents
           for source in *.html static; do cp -r $source public/; done
-          ls incidents/ | while read i; do cp incidents/$i public/incidents/${i/.sample/}; done
+          ls incidents/ | while read i; do 
+            if [ -d incidents/$i ]; then
+              cp -r incidents/$i public/incidents/${i/.sample/};
+            else
+              cp incidents/$i public/incidents/${i/.sample/}; 
+            fi
+          done
+          
       - uses: crazy-max/ghaction-github-pages@v2
         with:
           commit_message: Deploy from ${{ github.ref }}@${{ github.sha }}
