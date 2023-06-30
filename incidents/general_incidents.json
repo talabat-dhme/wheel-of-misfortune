@@ -23,7 +23,7 @@
     {
         "ID": "5",
         "title": "Incident 5",
-        "inkstory": "incidents/redis-story.json",
+        "inkstory": "incidents/ink_incidents/redis-story.json",
         "scenario": "You've received an alert that your Redis server is killed..."
     },
     {
