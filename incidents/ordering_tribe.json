@@ -12,7 +12,8 @@
     {
         "ID": "3",
         "title": "Incident 3",
-        "scenario": "You've received an alert that your Blob storage system is unable to store objects..."
+        "inkstory": "incidents/ink_incidents/checkout_order_loss.json",
+        "scenario": "You've received an alert that there is an Order Loss on Web...."
     },
     {
         "ID": "4",
@@ -22,7 +23,7 @@
     {
         "ID": "5",
         "title": "Incident 5",
-        "inkstory": "incidents/redis-story.json",
+        "inkstory": "incidents/ink_incidents/redis-story.json",
         "scenario": "You've received an alert that your Redis server is killed..."
     },
     {

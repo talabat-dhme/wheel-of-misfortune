@@ -12,7 +12,7 @@
     {
         "ID": "3",
         "title": "Incident 3",
-        "inkstory": "incidents/checkout_order_loss.json",
+        "inkstory": "incidents/ink_incidents/checkout_order_loss.json",
         "scenario": "You've received an alert that there is an Order Loss on Web...."
     },
     {
