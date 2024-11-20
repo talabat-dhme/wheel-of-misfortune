@@ -1,7 +1,7 @@
 [
     {
         "ID": "1",
-        "title": "Home API Gateway start having increase in response time.",
+        "title": "Increase in response time 🚨",
         "inkstory": "incidents/ink_incidents/incident1.json",
         "scenario": "You've received alerts that Home API Gateway start having increase in response time."
     },
