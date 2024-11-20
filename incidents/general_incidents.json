@@ -2,43 +2,7 @@
     {
         "ID": "1",
         "title": "Incident 1",
-        "scenario": "You received alerts that your MySQL master does not accept writes..."
-    },
-    {
-        "ID": "2",
-        "title": "Incident 2",
-        "scenario": "You've received alerts that your pods are down, and unable to restart on their own..."
-    },
-    {
-        "ID": "3",
-        "title": "Incident 3",
-        "inkstory": "incidents/ink_incidents/checkout_order_loss.json",
-        "scenario": "You've received an alert that there is an Order Loss on Web...."
-    },
-    {
-        "ID": "4",
-        "title": "Incident 4",
-        "scenario": "You've received alerts that Cloudflare is having an outage..."
-    },
-    {
-        "ID": "5",
-        "title": "Incident 5",
-        "inkstory": "incidents/ink_incidents/redis-story.json",
-        "scenario": "You've received an alert that your Redis server is killed..."
-    },
-    {
-        "ID": "6",
-        "title": "Incident 6",
-        "scenario": "You've received alerts of high HTTP 5xx error rate on the Checkout MFE..."
-    },
-    {
-        "ID": "7",
-        "title": "Incident 7",
-        "scenario": "You've received alerts that there is high latency for Rider Chat..."
-    },
-    {
-        "ID": "8",
-        "title": "Incident 8",
-        "scenario": "You've received an emergency email that customers are unable to checkout in EU..."
+        "inkstory": "incidents/ink_incidents/incident1.json",
+        "scenario": "You've received alerts that Home API Gateway start having increase in response time -->      https://docs.google.com/document/d/1MDg0XMaYOqfEN8RWxWLeC5CPc5J1CtTo4j97LrErUi8/edit?usp=sharing"
     }
 ]
