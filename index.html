@@ -110,21 +110,25 @@
                     <hr class="mw3 bb bw1 b--black-10">
                     <li class="pv3 ba bl-0 bt-0 br-0 b--dotted b--black-30">
                         <input type="checkbox" class="magic-checkbox" name="progress" value="first" id="first"
-                            onClick="stopwatch.lap();changeProgress(this, 0, 25);unlockCheckbox(this);" />
+                            onClick="stopwatch.lap();changeProgress(this, 0, 20);unlockCheckbox(this);" />
                         <label for="first">ACKNOWLEDGE</label>
                     </li>
                     <li class="pv3 ba bl-0 bt-0 br-0 b--dotted b--black-30"><input type="checkbox"
                             class="magic-checkbox" name="progress" value="second" id="second"
-                            onClick="stopwatch.lap();changeProgress(this, 25, 50);unlockCheckbox(this);" disabled>
-                        <label for="second">MITIGATE</label></li>
+                            onClick="stopwatch.lap();changeProgress(this, 20, 40);unlockCheckbox(this);" disabled>
+                        <label for="second">INVESTIGATING</label></li>
                     <li class="pv3 ba bl-0 bt-0 br-0 b--dotted b--black-30">
                         <input type="checkbox" class="magic-checkbox" name="progress" value="third" id="third"
-                            onClick="stopwatch.lap();changeProgress(this, 50, 75);unlockCheckbox(this);" disabled>
-                        <label for="third">TRIAGE</label></li>
+                            onClick="stopwatch.lap();changeProgress(this, 40, 60);unlockCheckbox(this);" disabled>
+                        <label for="third">IDENTIFIED</label></li>
                     <li class="pv3 ba bl-0 bt-0 br-0 b--dotted b--black-30">
                         <input type="checkbox" class="magic-checkbox" name="progress" value="fourth" id="fourth"
-                            onClick="stopwatch.lap();stopwatch.stop();changeProgress(this, 75, 100);" disabled>
-                        <label for="fourth">RESOLVE</label></li>
+                            onClick="stopwatch.lap();changeProgress(this, 60, 80);unlockCheckbox(this);" disabled>
+                        <label for="fourth">MONITORING</label></li>
+                    <li class="pv3 ba bl-0 bt-0 br-0 b--dotted b--black-30">
+                        <input type="checkbox" class="magic-checkbox" name="progress" value="fifth" id="fifth"
+                            onClick="stopwatch.lap();stopwatch.stop();changeProgress(this, 80, 100);" disabled>
+                        <label for="fifth">RESOLVED</label></li>
                 </ul>
             </div>
             <div class="fl w-100 w-30-ns tc center bg-white br3 pa3 mv3 ba b--black-10 mbr">
@@ -182,8 +186,12 @@
             document.getElementById("third").disabled = true;
             document.getElementById("fourth").disabled = false;
         }
-        else {
+        else if (c.value == "fourth") {
             document.getElementById("fourth").disabled = true;
+            document.getElementById("fifth").disabled = false;
+        }
+        else {
+            document.getElementById("fifth").disabled = true;
         }
 
     }
