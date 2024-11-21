@@ -1,5 +1,5 @@
 kind: template
-load: krakend-0.1.0.yml
+load: build-0.1.0.yml
 
 data:
   unit_tests:
