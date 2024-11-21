@@ -94,7 +94,7 @@ steps:
         - export NUGET_PACKAGES=/drone/src/packages
         - dotnet build --no-restore
       depends_on:
-        - nuget-setup-restore
+        - clone
       environment:
         CUSTOM_GITHUB_TOKEN:
             from_secret: CUSTOM_GITHUB_TOKEN
