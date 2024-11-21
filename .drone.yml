@@ -1,0 +1,39 @@
+kind: template
+load: krakend-0.1.0.yml
+
+data:
+  go_version: 1.20.10
+
+  unit_tests:
+    enabled: false
+
+  sonarqube:
+    enabled: false
+
+  integration_tests:
+    enabled: false
+
+  images:
+    - name: whell-of-misfortune
+      dockerfile: ./Dockerfile
+      repo: sre/wheel
+      use_talabat_github: true
+      add_commit_sha: true
+
+  deploy:
+    qa:
+      - name: whell-of-misfortune
+        type: argo
+        argo_app: whell-of-misfortune
+        namespace: automation
+        path: charts
+
+  filter_branch:
+    qa:
+      - master
+      - main
+      - feature/*
+      - bugfix/*
+      - hotfix/*
+      - fix/*
+      - infra/*

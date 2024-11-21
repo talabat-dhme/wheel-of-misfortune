@@ -1,0 +1,96 @@
+
+# Because this is a parent chart, we must specify configuration for the
+# 'service' chart by defning it insite the 'service' section.
+# https://helm.sh/docs/chart_template_guide/subcharts_and_globals/
+service:
+  env: qa
+  replicas: 1
+
+# We use Traefik as our ingress controller. Traefik intercepts and routes every
+# incoming request based on the path, the host, headers, and so on ...
+# For more information, visit https://docs.traefik.io/routing/routers
+  ingress:
+    enabled: false
+
+  image:
+    repository: 457710302499.dkr.ecr.eu-west-2.amazonaws.com/sre/wheel
+    pullPolicy: Always
+  imagePullSecrets: []
+
+  containerPort: 8000
+  service:
+    type: ClusterIP
+    port: 80
+
+  revisionHistoryLimit: 10
+  rollingUpdate:
+    maxUnavailable: 50%
+    maxSurge: 25%
+
+# You must always specify how much of each resource a container needs.
+# https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+  resources:
+    limits:
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+
+## The kubelet uses readiness probes to know when a container is ready to start accepting traffic.
+## https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: 8000
+      scheme: HTTP
+    initialDelaySeconds: 5
+    timeoutSeconds: 2
+    periodSeconds: 15
+    successThreshold: 1
+    failureThreshold: 5
+
+## The kubelet uses liveness probes to know when to restart a container.
+## https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+  livenessProbe:
+    tcpSocket:
+      port: 8000
+    initialDelaySeconds: 5
+    timeoutSeconds: 2
+    periodSeconds: 15
+    successThreshold: 1
+    failureThreshold: 5
+
+    ## The kubelet uses liveness probes to know when to restart a container.
+      ## https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+  startupProbe:
+    tcpSocket:
+      port: 8080
+    initialDelaySeconds: 5
+    timeoutSeconds: 2
+    periodSeconds: 15
+    successThreshold: 1
+    failureThreshold: 5
+
+  # Istio Default values to be added to new services
+  istio:
+    enabled: true
+    ingress:
+      routes:
+        mainPort: 80
+        match:
+          - host: wheel-of-misfortune.dhhmena.com
+            prefix: "/"
+    holdApplicationUntilProxyStarts: true
+    resources:
+      enabled: true
+      limits:
+        memory: 64Mi
+      requests:
+        cpu: 100m
+        memory: 64Mi
+    retries:
+      attempts: 5
+      retryOn: gateway-error,connect-failure,refused-stream
+    trafficPolicy:
+      loadBalancer:
+        simple: LEAST_CONN

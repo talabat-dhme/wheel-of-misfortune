@@ -1,0 +1,15 @@
+apiVersion: v2
+name: whell-of-misfortune
+description: A Helm chart for Kubernetes
+home: https://github.com/talabat-dhme/whell-of-misfortune
+type: application
+version: 1.37.0
+appVersion: "1.0"
+maintainers:
+  - name: SRE
+    email: sre@talabat.com
+icon: https://www.deliveryhero.com/wp-content/themes/deliveryhero_corporate/img/Delivery-Hero-Comet.png
+dependencies:
+  - name: service
+    version: 1.38.0
+    repository: https://talabat-dhme.github.io/helm-charts
