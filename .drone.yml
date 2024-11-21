@@ -92,20 +92,6 @@ steps:
       name: clone
     - commands:
         - export NUGET_PACKAGES=/drone/src/packages
-        - dotnet nuget add source https://nuget.pkg.github.com/talabat-dhme/index.json -n talabat-github -u token -p $CUSTOM_GITHUB_TOKEN --store-password-in-clear-text
-        - dotnet nuget add source https://nuget.pkg.github.com/deliveryhero/index.json -n deliveryhero-github -u token -p $CUSTOM_GITHUB_TOKEN --store-password-in-clear-text
-        - dotnet restore
-      depends_on:
-        - clone
-      environment:
-        CUSTOM_GITHUB_TOKEN:
-            from_secret: CUSTOM_GITHUB_TOKEN
-        GITHUB_TOKEN:
-            from_secret: GITHUB_TOKEN
-      image: public.ecr.aws/talabat/talabat/dotnet-sdk-ci-tools:6.0
-      name: nuget-setup-restore
-    - commands:
-        - export NUGET_PACKAGES=/drone/src/packages
         - dotnet build --no-restore
       depends_on:
         - nuget-setup-restore
