@@ -40,7 +40,7 @@ service:
 ## https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
   readinessProbe:
     httpGet:
-      path: /health
+      path: /health.html
       port: 8000
       scheme: HTTP
     initialDelaySeconds: 5
