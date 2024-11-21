@@ -1,38 +1,824 @@
-kind: template
-load: build-0.1.0.yml
+clone:
+    disable: true
+kind: pipeline
+name: security-scan-stage
+steps:
+    - commands:
+        - git clone https://x-access-token:$GITHUB_TOKEN@github.com/talabat-dhme/security-test-pipeline
+        - cd security-test-pipeline
+        - python pipeline.py
+      environment:
+        GITHUB_TOKEN:
+            from_secret: GITHUB_TOKEN
+        JIRA_TOKEN:
+            from_secret: TSR_JIRA_TOKEN
+      image: public.ecr.aws/q5z6o8n2/python-with-git:0.3
+      name: security-secrets-scanner
+trigger:
+    event:
+        - pull_request
+        - push
+type: docker
+---
+clone:
+    disable: true
+globals:
+    - LOAD_TEST_APP_NAME:
+        from_secret: LOAD_TEST_APP_NAME
+    - NEWRELIC_ACCOUNT_ID:
+        from_secret: PROD_NEWRELIC_ACCOUNT_ID
+      NEWRELIC_INSERT_KEY:
+        from_secret: PROD_NEWRELIC_INSERT_KEY
+      NEWRELIC_QUERY_KEY:
+        from_secret: NEWRELIC_QUERY_KEY
+      NEWRELIC_REST_API_KEY:
+        from_secret: PROD_NEWRELIC_REST_API_KEY
+    - SLACK_WEBHOOK:
+        from_secret: SLACK_WEBHOOK
+kind: pipeline
+name: load-test-check
+steps:
+    - commands:
+        - |
+          if [ -z "$LOAD_TEST_APP_NAME" ]; then echo -e "\033[32m Bypassing the check, your pipeline is not configured yet!"; exit; fi
+        - |
+          curl --fail --show-error --silent \
+          -H "X-Query-Key: $NEWRELIC_QUERY_KEY" \
+          --request GET -G "https://insights-api.newrelic.com/v1/accounts/938958/query" --data-urlencode "nrql=WITH IF(lt_resptime > 0 AND lt_resptime < 5000, 1, 0) as respTimeOk, IF(lt_rpm / peak_rpm > 2 AND lt_rpm / peak_rpm < 10, 1, 0) as rpmMultiplierOk, IF(peak_resptime = 0 OR (lt_resptime / peak_resptime > 0 AND lt_resptime / peak_resptime < 5), 1, 0) as respTimeMultipOk, IF(lt_error_rate < 5, 1, 0) as errorRateOk, if(lt_rpm / peak_rpm < 1, 0, if(lt_rpm / peak_rpm < 2, 1, respTimeOk + respTimeMultipOk + rpmMultiplierOk + errorRateOk)) as totalScore SELECT latest(totalScore) From load_test_summary_apm  limit max since 1 week ago where appName  = '$LOAD_TEST_APP_NAME'"\
+          | grep -E '\[\{"latest":3\.0\}\]|\[\{"latest":4\.0\}\]' || { echo -e "\033[31m Your load test score is < 3, please fix your load tests before the next big bang.\033[0m \n\033[33m Dashboard: https://onenr.io/01wZrop9Ew6"; exit 1; }
+      environment:
+        LOAD_TEST_APP_NAME:
+            from_secret: LOAD_TEST_APP_NAME
+        NEWRELIC_ACCOUNT_ID:
+            from_secret: PROD_NEWRELIC_ACCOUNT_ID
+        NEWRELIC_INSERT_KEY:
+            from_secret: PROD_NEWRELIC_INSERT_KEY
+        NEWRELIC_QUERY_KEY:
+            from_secret: NEWRELIC_QUERY_KEY
+        NEWRELIC_REST_API_KEY:
+            from_secret: PROD_NEWRELIC_REST_API_KEY
+      image: curlimages/curl:8.00.1
+      name: load_test_score_check
+trigger:
+    event:
+        - pull_request
+        - push
+type: docker
+---
+clone:
+    disable: true
+features:
+    docker-daemon@v1:
+        enabled: true
+globals:
+    - AWS_ACCESS_KEY_ID:
+        from_secret: PROD_AWS_ACCESS_KEY_ID
+      AWS_DEFAULT_REGION:
+        from_secret: PROD_AWS_DEFAULT_REGION
+      AWS_SECRET_ACCESS_KEY:
+        from_secret: PROD_AWS_SECRET_ACCESS_KEY
+kind: pipeline
+name: build-test
+steps:
+    - commands:
+        - env
+        - git clone --branch $DRONE_TARGET_BRANCH $DRONE_REMOTE_URL .
+        - if [ "$DRONE_TARGET_BRANCH" != "$DRONE_SOURCE_BRANCH" ]; then echo "checking out $DRONE_COMMIT_SHA" && git fetch origin $DRONE_SOURCE_BRANCH && git checkout $DRONE_COMMIT_SHA -b $DRONE_SOURCE_BRANCH; fi
+        - printf "Current commit SHA $(git rev-parse HEAD) \n"
+      environment:
+        GITHUB_TOKEN:
+            from_secret: GITHUB_TOKEN
+      image: alpine/git
+      name: clone
+    - commands:
+        - export NUGET_PACKAGES=/drone/src/packages
+        - dotnet nuget add source https://nuget.pkg.github.com/talabat-dhme/index.json -n talabat-github -u token -p $CUSTOM_GITHUB_TOKEN --store-password-in-clear-text
+        - dotnet nuget add source https://nuget.pkg.github.com/deliveryhero/index.json -n deliveryhero-github -u token -p $CUSTOM_GITHUB_TOKEN --store-password-in-clear-text
+        - dotnet restore
+      depends_on:
+        - clone
+      environment:
+        CUSTOM_GITHUB_TOKEN:
+            from_secret: CUSTOM_GITHUB_TOKEN
+        GITHUB_TOKEN:
+            from_secret: GITHUB_TOKEN
+      image: public.ecr.aws/talabat/talabat/dotnet-sdk-ci-tools:6.0
+      name: nuget-setup-restore
+    - commands:
+        - export NUGET_PACKAGES=/drone/src/packages
+        - dotnet build --no-restore
+      depends_on:
+        - nuget-setup-restore
+      environment:
+        CUSTOM_GITHUB_TOKEN:
+            from_secret: CUSTOM_GITHUB_TOKEN
+        GITHUB_TOKEN:
+            from_secret: GITHUB_TOKEN
+      image: public.ecr.aws/talabat/talabat/dotnet-sdk-ci-tools:6.0
+      name: build
+    - depends_on:
+        - clone
+      environment:
+        AWS_ACCESS_KEY_ID:
+            from_secret: PROD_AWS_ACCESS_KEY_ID
+        AWS_DEFAULT_REGION:
+            from_secret: PROD_AWS_DEFAULT_REGION
+        AWS_SECRET_ACCESS_KEY:
+            from_secret: PROD_AWS_SECRET_ACCESS_KEY
+        CUSTOM_GITHUB_TOKEN:
+            from_secret: CUSTOM_GITHUB_TOKEN
+        GITHUB_TOKEN:
+            from_secret: GITHUB_TOKEN
+      image: plugins/ecr
+      name: whell-of-misfortune
+      settings:
+        access_key:
+            from_secret: PROD_AWS_ACCESS_KEY_ID
+        build_args:
+            - GITHUB_USER=talabat-bot
+            - COMMIT_SHA=${DRONE_COMMIT_SHA}
+        build_args_from_env:
+            - GITHUB_TOKEN
+        dockerfile: ./Dockerfile
+        region:
+            from_secret: PROD_AWS_DEFAULT_REGION
+        registry:
+            from_secret: ECR_REPO
+        repo: sre/wheel
+        secret_key:
+            from_secret: PROD_AWS_SECRET_ACCESS_KEY
+        tags:
+            - ${DRONE_COMMIT_SHA}
+trigger:
+    branch:
+        - master
+        - dev
+        - main
+        - staging
+    event:
+        exclude:
+            - promote
+            - rollback
+type: docker
+---
+clone:
+    disable: true
+globals:
+    - ARGO_TOKEN_DEFAULT:
+        from_secret: ARGO_TOKEN_DEFAULT
+      ARGO_TOKEN_WALLET_PROD:
+        from_secret: ARGO_TOKEN_WALLET_PROD
+      ARGO_TOKEN_WALLET_QA:
+        from_secret: ARGO_TOKEN_WALLET_QA
+      GITHUB_APP_ID:
+        from_secret: GITHUB_APP_ID
+      GITHUB_APP_PRIVATE_KEY:
+        from_secret: GITHUB_APP_PRIVATE_KEY
+      GITHUB_TOKEN:
+        from_secret: GITHUB_TOKEN
+    - EKS_CLUSTER:
+        from_secret: DEV_EKS_CLUSTER
+      EKS_ROLE_ARN:
+        from_secret: DEV_EKS_ROLE_ARN
+    - AWS_ACCESS_KEY_ID:
+        from_secret: DEV_AWS_ACCESS_KEY_ID
+      AWS_DEFAULT_REGION:
+        from_secret: DEV_AWS_DEFAULT_REGION
+      AWS_SECRET_ACCESS_KEY:
+        from_secret: DEV_AWS_SECRET_ACCESS_KEY
+    - NEWRELIC_ACCOUNT_ID:
+        from_secret: DEV_NEWRELIC_ACCOUNT_ID
+      NEWRELIC_INSERT_KEY:
+        from_secret: DEV_NEWRELIC_INSERT_KEY
+      NEWRELIC_QUERY_KEY:
+        from_secret: NEWRELIC_QUERY_KEY
+      NEWRELIC_REST_API_KEY:
+        from_secret: DEV_NEWRELIC_REST_API_KEY
+    - SLACK_WEBHOOK:
+        from_secret: SLACK_WEBHOOK
+    - STS_KEY:
+        from_secret: DEV_STS_KEY
+      STS_KEY_ID:
+        from_secret: DEV_STS_KEY_ID
+kind: pipeline
+name: Dev
+steps:
+    - commands:
+        - env
+        - git clone --branch $DRONE_TARGET_BRANCH $DRONE_REMOTE_URL .
+        - if [ "$DRONE_TARGET_BRANCH" != "$DRONE_SOURCE_BRANCH" ]; then echo "checking out $DRONE_COMMIT_SHA" && git fetch origin $DRONE_SOURCE_BRANCH && git checkout $DRONE_COMMIT_SHA -b $DRONE_SOURCE_BRANCH; fi
+        - printf "Current commit SHA $(git rev-parse HEAD) \n"
+      environment:
+        GITHUB_TOKEN:
+            from_secret: GITHUB_TOKEN
+      image: alpine/git
+      name: clone
+    - commands:
+        - echo "Skip prevent-deploy check for DEV env"
+      depends_on:
+        - clone
+      image: alpine
+      name: prevent-deploy-from-branch
+    - commands:
+        - |
+          curl --fail --show-error --silent \
+          -H "X-Insert-Key: $NEWRELIC_INSERT_KEY" \
+          -H "Content-Type: application/json" \
+          -d '[{
+              "eventType": "deployment",
+              "revision": "'"${DRONE_COMMIT_SHA}"'",
+              "repo": "'"${DRONE_REPO_NAME}"'",
+              "user": "'"${DRONE_COMMIT_AUTHOR}"'",
+              "buildUrl": "'"${DRONE_BUILD_LINK}"'",
+              "buildNum": "'"${DRONE_BUILD_NUMBER}"'",
+              "branch": "'"${DRONE_BRANCH}"'",
+              "environment": "'"${DRONE_DEPLOY_TO}"'"
+              }]' \
+          --request POST "https://insights-collector.newrelic.com/v1/accounts/$NEWRELIC_ACCOUNT_ID/events"
+      depends_on: null
+      environment:
+        NEWRELIC_ACCOUNT_ID:
+            from_secret: DEV_NEWRELIC_ACCOUNT_ID
+        NEWRELIC_INSERT_KEY:
+            from_secret: DEV_NEWRELIC_INSERT_KEY
+        NEWRELIC_QUERY_KEY:
+            from_secret: NEWRELIC_QUERY_KEY
+        NEWRELIC_REST_API_KEY:
+            from_secret: DEV_NEWRELIC_REST_API_KEY
+        SLACK_WEBHOOK:
+            from_secret: SLACK_WEBHOOK
+      image: curlimages/curl:8.00.1
+      name: newrelic-insights
+trigger:
+    event:
+        - pull_request
+        - promote
+    target:
+        - dev
+        - '*-dev'
+type: docker
+---
+clone:
+    disable: true
+features:
+    docker-daemon@v1:
+        enabled: true
+globals:
+    - ARGO_TOKEN_DEFAULT:
+        from_secret: ARGO_TOKEN_DEFAULT
+      ARGO_TOKEN_WALLET_PROD:
+        from_secret: ARGO_TOKEN_WALLET_PROD
+      ARGO_TOKEN_WALLET_QA:
+        from_secret: ARGO_TOKEN_WALLET_QA
+      GITHUB_APP_ID:
+        from_secret: GITHUB_APP_ID
+      GITHUB_APP_PRIVATE_KEY:
+        from_secret: GITHUB_APP_PRIVATE_KEY
+      GITHUB_TOKEN:
+        from_secret: GITHUB_TOKEN
+    - EKS_CLUSTER:
+        from_secret: DEV_EKS_CLUSTER
+      EKS_ROLE_ARN:
+        from_secret: DEV_EKS_ROLE_ARN
+    - AWS_ACCESS_KEY_ID:
+        from_secret: DEV_AWS_ACCESS_KEY_ID
+      AWS_DEFAULT_REGION:
+        from_secret: DEV_AWS_DEFAULT_REGION
+      AWS_SECRET_ACCESS_KEY:
+        from_secret: DEV_AWS_SECRET_ACCESS_KEY
+kind: pipeline
+name: rollback-dev
+steps:
+    - commands:
+        - env
+        - git clone --branch $DRONE_TARGET_BRANCH $DRONE_REMOTE_URL .
+        - if [ "$DRONE_TARGET_BRANCH" != "$DRONE_SOURCE_BRANCH" ]; then echo "checking out $DRONE_COMMIT_SHA" && git fetch origin $DRONE_SOURCE_BRANCH && git checkout $DRONE_COMMIT_SHA -b $DRONE_SOURCE_BRANCH; fi
+        - printf "Current commit SHA $(git rev-parse HEAD) \n"
+      environment:
+        GITHUB_TOKEN:
+            from_secret: GITHUB_TOKEN
+      image: alpine/git
+      name: clone
+trigger:
+    event: rollback
+    target:
+        - dev
+type: docker
+---
+clone:
+    disable: true
+features:
+    docker-daemon@v1:
+        enabled: true
+globals:
+    - ARGO_TOKEN_DEFAULT:
+        from_secret: ARGO_TOKEN_DEFAULT
+      ARGO_TOKEN_WALLET_PROD:
+        from_secret: ARGO_TOKEN_WALLET_PROD
+      ARGO_TOKEN_WALLET_QA:
+        from_secret: ARGO_TOKEN_WALLET_QA
+      GITHUB_APP_ID:
+        from_secret: GITHUB_APP_ID
+      GITHUB_APP_PRIVATE_KEY:
+        from_secret: GITHUB_APP_PRIVATE_KEY
+      GITHUB_TOKEN:
+        from_secret: GITHUB_TOKEN
+    - EKS_CLUSTER:
+        from_secret: QA_EKS_CLUSTER
+      EKS_ROLE_ARN:
+        from_secret: QA_EKS_ROLE_ARN
+    - AWS_ACCESS_KEY_ID:
+        from_secret: QA_AWS_ACCESS_KEY_ID
+      AWS_DEFAULT_REGION:
+        from_secret: QA_AWS_DEFAULT_REGION
+      AWS_SECRET_ACCESS_KEY:
+        from_secret: QA_AWS_SECRET_ACCESS_KEY
+kind: pipeline
+name: rollback-qa
+steps:
+    - commands:
+        - env
+        - git clone --branch $DRONE_TARGET_BRANCH $DRONE_REMOTE_URL .
+        - if [ "$DRONE_TARGET_BRANCH" != "$DRONE_SOURCE_BRANCH" ]; then echo "checking out $DRONE_COMMIT_SHA" && git fetch origin $DRONE_SOURCE_BRANCH && git checkout $DRONE_COMMIT_SHA -b $DRONE_SOURCE_BRANCH; fi
+        - printf "Current commit SHA $(git rev-parse HEAD) \n"
+      environment:
+        GITHUB_TOKEN:
+            from_secret: GITHUB_TOKEN
+      image: alpine/git
+      name: clone
+    - commands:
+        - |
+          argo-deploy whell-of-misfortune --repo https://github.com/talabat-dhme/${DRONE_REPO_NAME}.git --path charts -n automation -e ${DRONE_DEPLOY_TO} --rollback=true --rollback-id=${ROLLBACK:-1}
+      depends_on:
+        - clone
+      environment:
+        ARGO_TOKEN_DEFAULT:
+            from_secret: ARGO_TOKEN_DEFAULT
+        ARGO_TOKEN_WALLET_PROD:
+            from_secret: ARGO_TOKEN_WALLET_PROD
+        ARGO_TOKEN_WALLET_QA:
+            from_secret: ARGO_TOKEN_WALLET_QA
+        AWS_ACCESS_KEY_ID:
+            from_secret: QA_AWS_ACCESS_KEY_ID
+        AWS_DEFAULT_REGION:
+            from_secret: QA_AWS_DEFAULT_REGION
+        AWS_SECRET_ACCESS_KEY:
+            from_secret: QA_AWS_SECRET_ACCESS_KEY
+        EKS_CLUSTER:
+            from_secret: QA_EKS_CLUSTER
+        EKS_ROLE_ARN:
+            from_secret: QA_EKS_ROLE_ARN
+        GITHUB_APP_ID:
+            from_secret: GITHUB_APP_ID
+        GITHUB_APP_PRIVATE_KEY:
+            from_secret: GITHUB_APP_PRIVATE_KEY
+        GITHUB_TOKEN:
+            from_secret: GITHUB_TOKEN
+      image: public.ecr.aws/talabat/talabat/aws-kubectl
+      name: rollback-whell-of-misfortune
+trigger:
+    event: rollback
+    target:
+        - qa
+type: docker
+---
+clone:
+    disable: true
+features:
+    docker-daemon@v1:
+        enabled: true
+globals:
+    - ARGO_TOKEN_DEFAULT:
+        from_secret: ARGO_TOKEN_DEFAULT
+      ARGO_TOKEN_WALLET_PROD:
+        from_secret: ARGO_TOKEN_WALLET_PROD
+      ARGO_TOKEN_WALLET_QA:
+        from_secret: ARGO_TOKEN_WALLET_QA
+      GITHUB_APP_ID:
+        from_secret: GITHUB_APP_ID
+      GITHUB_APP_PRIVATE_KEY:
+        from_secret: GITHUB_APP_PRIVATE_KEY
+      GITHUB_TOKEN:
+        from_secret: GITHUB_TOKEN
+    - EKS_CLUSTER:
+        from_secret: PROD_EKS_CLUSTER
+      EKS_ROLE_ARN:
+        from_secret: PROD_EKS_ROLE_ARN
+    - AWS_ACCESS_KEY_ID:
+        from_secret: PROD_AWS_ACCESS_KEY_ID
+      AWS_DEFAULT_REGION:
+        from_secret: PROD_AWS_DEFAULT_REGION
+      AWS_SECRET_ACCESS_KEY:
+        from_secret: PROD_AWS_SECRET_ACCESS_KEY
+kind: pipeline
+name: rollback-prod
+steps:
+    - commands:
+        - env
+        - git clone --branch $DRONE_TARGET_BRANCH $DRONE_REMOTE_URL .
+        - if [ "$DRONE_TARGET_BRANCH" != "$DRONE_SOURCE_BRANCH" ]; then echo "checking out $DRONE_COMMIT_SHA" && git fetch origin $DRONE_SOURCE_BRANCH && git checkout $DRONE_COMMIT_SHA -b $DRONE_SOURCE_BRANCH; fi
+        - printf "Current commit SHA $(git rev-parse HEAD) \n"
+      environment:
+        GITHUB_TOKEN:
+            from_secret: GITHUB_TOKEN
+      image: alpine/git
+      name: clone
+trigger:
+    event: rollback
+    target:
+        - prod
+type: docker
+---
+clone:
+    disable: true
+globals:
+    - ARGO_TOKEN_DEFAULT:
+        from_secret: ARGO_TOKEN_DEFAULT
+      ARGO_TOKEN_WALLET_PROD:
+        from_secret: ARGO_TOKEN_WALLET_PROD
+      ARGO_TOKEN_WALLET_QA:
+        from_secret: ARGO_TOKEN_WALLET_QA
+      GITHUB_APP_ID:
+        from_secret: GITHUB_APP_ID
+      GITHUB_APP_PRIVATE_KEY:
+        from_secret: GITHUB_APP_PRIVATE_KEY
+      GITHUB_TOKEN:
+        from_secret: GITHUB_TOKEN
+    - EKS_CLUSTER:
+        from_secret: QA_EKS_CLUSTER
+      EKS_ROLE_ARN:
+        from_secret: QA_EKS_ROLE_ARN
+    - AWS_ACCESS_KEY_ID:
+        from_secret: QA_AWS_ACCESS_KEY_ID
+      AWS_DEFAULT_REGION:
+        from_secret: QA_AWS_DEFAULT_REGION
+      AWS_SECRET_ACCESS_KEY:
+        from_secret: QA_AWS_SECRET_ACCESS_KEY
+    - NEWRELIC_ACCOUNT_ID:
+        from_secret: DEV_NEWRELIC_ACCOUNT_ID
+      NEWRELIC_INSERT_KEY:
+        from_secret: DEV_NEWRELIC_INSERT_KEY
+      NEWRELIC_QUERY_KEY:
+        from_secret: NEWRELIC_QUERY_KEY
+      NEWRELIC_REST_API_KEY:
+        from_secret: DEV_NEWRELIC_REST_API_KEY
+    - SLACK_WEBHOOK:
+        from_secret: SLACK_WEBHOOK
+    - STS_KEY:
+        from_secret: QA_STS_KEY
+      STS_KEY_ID:
+        from_secret: QA_STS_KEY_ID
+kind: pipeline
+name: QA
+steps:
+    - commands:
+        - env
+        - git clone --branch $DRONE_TARGET_BRANCH $DRONE_REMOTE_URL .
+        - if [ "$DRONE_TARGET_BRANCH" != "$DRONE_SOURCE_BRANCH" ]; then echo "checking out $DRONE_COMMIT_SHA" && git fetch origin $DRONE_SOURCE_BRANCH && git checkout $DRONE_COMMIT_SHA -b $DRONE_SOURCE_BRANCH; fi
+        - printf "Current commit SHA $(git rev-parse HEAD) \n"
+      environment:
+        GITHUB_TOKEN:
+            from_secret: GITHUB_TOKEN
+      image: alpine/git
+      name: clone
+    - commands:
+        - echo "Source branch is ${DRONE_SOURCE_BRANCH}"
+        - "case \"${DRONE_SOURCE_BRANCH}\" in\n\n  \n  master)\n    echo \"The source branch ${DRONE_SOURCE_BRANCH} is allowed to be promoted to ${DRONE_DEPLOY_TO}\"\n    ;;\n  \n  main)\n    echo \"The source branch ${DRONE_SOURCE_BRANCH} is allowed to be promoted to ${DRONE_DEPLOY_TO}\"\n    ;;\n  \n  feature/*)\n    echo \"The source branch ${DRONE_SOURCE_BRANCH} is allowed to be promoted to ${DRONE_DEPLOY_TO}\"\n    ;;\n  \n  bugfix/*)\n    echo \"The source branch ${DRONE_SOURCE_BRANCH} is allowed to be promoted to ${DRONE_DEPLOY_TO}\"\n    ;;\n  \n  hotfix/*)\n    echo \"The source branch ${DRONE_SOURCE_BRANCH} is allowed to be promoted to ${DRONE_DEPLOY_TO}\"\n    ;;\n  \n  fix/*)\n    echo \"The source branch ${DRONE_SOURCE_BRANCH} is allowed to be promoted to ${DRONE_DEPLOY_TO}\"\n    ;;\n  \n  infra/*)\n    echo \"The source branch ${DRONE_SOURCE_BRANCH} is allowed to be promoted to ${DRONE_DEPLOY_TO}\"\n    ;;\n  \n\n  *)\n    echo \"The source branch ${DRONE_SOURCE_BRANCH} is NOT allowed to be promoted to ${DRONE_DEPLOY_TO}\";\n    drone build stop ${DRONE_REPO} ${DRONE_BUILD_NUMBER}\nesac\n"
+      depends_on:
+        - clone
+      environment:
+        DRONE_SERVER: https://drone-ci.deliveryhero.net
+        DRONE_TOKEN:
+            from_secret: DRONE_TOKEN
+      image: drone/cli:alpine
+      name: prevent-deploy-from-branch
+    - commands:
+        - aws eks update-kubeconfig --name $EKS_CLUSTER --role-arn $EKS_ROLE_ARN
+        - helm dependencies update charts
+        - |
+          argo-deploy whell-of-misfortune --repo https://github.com/talabat-dhme/${DRONE_REPO_NAME}.git --revision ${DRONE_COMMIT_SHA} --path charts -e ${DRONE_DEPLOY_TO} -n automation -f values.yaml -f values.${DRONE_DEPLOY_TO}.yaml --set env=${DRONE_DEPLOY_TO} --set global.env=${DRONE_DEPLOY_TO} --set service.env=${DRONE_DEPLOY_TO} --set image.tag=${DRONE_COMMIT_SHA} --set global.image.tag=${DRONE_COMMIT_SHA} --set service.image.tag=${DRONE_COMMIT_SHA} --set cron-jobs.image.tag=${DRONE_COMMIT_SHA}
+      depends_on:
+        - prevent-deploy-from-branch
+      environment:
+        ARGO_TOKEN_DEFAULT:
+            from_secret: ARGO_TOKEN_DEFAULT
+        ARGO_TOKEN_WALLET_PROD:
+            from_secret: ARGO_TOKEN_WALLET_PROD
+        ARGO_TOKEN_WALLET_QA:
+            from_secret: ARGO_TOKEN_WALLET_QA
+        AWS_ACCESS_KEY_ID:
+            from_secret: QA_AWS_ACCESS_KEY_ID
+        AWS_DEFAULT_REGION:
+            from_secret: QA_AWS_DEFAULT_REGION
+        AWS_SECRET_ACCESS_KEY:
+            from_secret: QA_AWS_SECRET_ACCESS_KEY
+        EKS_CLUSTER:
+            from_secret: QA_EKS_CLUSTER
+        EKS_ROLE_ARN:
+            from_secret: QA_EKS_ROLE_ARN
+        GITHUB_APP_ID:
+            from_secret: GITHUB_APP_ID
+        GITHUB_APP_PRIVATE_KEY:
+            from_secret: GITHUB_APP_PRIVATE_KEY
+        GITHUB_TOKEN:
+            from_secret: GITHUB_TOKEN
+      image: public.ecr.aws/talabat/talabat/aws-kubectl
+      name: whell-of-misfortune
+      when:
+        branch:
+            - main
+            - master
+            - dev
+            - staging
+        event:
+            - pull_request
+            - promote
+        target:
+            - qa
+            - whell-of-misfortune-qa
+    - commands:
+        - |
+          curl --fail --show-error --silent \
+          -H "X-Insert-Key: $NEWRELIC_INSERT_KEY" \
+          -H "Content-Type: application/json" \
+          -d '[{
+              "eventType": "deployment",
+              "revision": "'"${DRONE_COMMIT_SHA}"'",
+              "repo": "'"${DRONE_REPO_NAME}"'",
+              "user": "'"${DRONE_COMMIT_AUTHOR}"'",
+              "buildUrl": "'"${DRONE_BUILD_LINK}"'",
+              "buildNum": "'"${DRONE_BUILD_NUMBER}"'",
+              "branch": "'"${DRONE_BRANCH}"'",
+              "environment": "'"${DRONE_DEPLOY_TO}"'"
+              }]' \
+          --request POST "https://insights-collector.newrelic.com/v1/accounts/$NEWRELIC_ACCOUNT_ID/events"
+      depends_on:
+        - whell-of-misfortune
+      environment:
+        NEWRELIC_ACCOUNT_ID:
+            from_secret: DEV_NEWRELIC_ACCOUNT_ID
+        NEWRELIC_INSERT_KEY:
+            from_secret: DEV_NEWRELIC_INSERT_KEY
+        NEWRELIC_QUERY_KEY:
+            from_secret: NEWRELIC_QUERY_KEY
+        NEWRELIC_REST_API_KEY:
+            from_secret: DEV_NEWRELIC_REST_API_KEY
+        SLACK_WEBHOOK:
+            from_secret: SLACK_WEBHOOK
+      image: curlimages/curl:8.00.1
+      name: newrelic-insights
+trigger:
+    branch:
+        - main
+        - master
+        - dev
+        - staging
+    event:
+        - pull_request
+        - promote
+    target:
+        - qa
+        - '*-qa'
+type: docker
+---
+clone:
+    disable: true
+environment:
+    EKS_CLUSTER: talabat-prod-eks-cluster
+globals:
+    - ARGO_TOKEN_DEFAULT:
+        from_secret: ARGO_TOKEN_DEFAULT
+      ARGO_TOKEN_WALLET_PROD:
+        from_secret: ARGO_TOKEN_WALLET_PROD
+      ARGO_TOKEN_WALLET_QA:
+        from_secret: ARGO_TOKEN_WALLET_QA
+      GITHUB_APP_ID:
+        from_secret: GITHUB_APP_ID
+      GITHUB_APP_PRIVATE_KEY:
+        from_secret: GITHUB_APP_PRIVATE_KEY
+      GITHUB_TOKEN:
+        from_secret: GITHUB_TOKEN
+    - EKS_CLUSTER:
+        from_secret: PROD_EKS_CLUSTER
+      EKS_ROLE_ARN:
+        from_secret: PROD_EKS_ROLE_ARN
+    - AWS_ACCESS_KEY_ID:
+        from_secret: PROD_AWS_ACCESS_KEY_ID
+      AWS_DEFAULT_REGION:
+        from_secret: PROD_AWS_DEFAULT_REGION
+      AWS_SECRET_ACCESS_KEY:
+        from_secret: PROD_AWS_SECRET_ACCESS_KEY
+    - NEWRELIC_ACCOUNT_ID:
+        from_secret: PROD_NEWRELIC_ACCOUNT_ID
+      NEWRELIC_INSERT_KEY:
+        from_secret: PROD_NEWRELIC_INSERT_KEY
+      NEWRELIC_QUERY_KEY:
+        from_secret: NEWRELIC_QUERY_KEY
+      NEWRELIC_REST_API_KEY:
+        from_secret: PROD_NEWRELIC_REST_API_KEY
+    - SLACK_WEBHOOK:
+        from_secret: SLACK_WEBHOOK
+    - STS_KEY:
+        from_secret: PROD_STS_KEY
+      STS_KEY_ID:
+        from_secret: PROD_STS_KEY_ID
+kind: pipeline
+name: Production
+steps:
+    - commands:
+        - env
+        - git clone --branch $DRONE_TARGET_BRANCH $DRONE_REMOTE_URL .
+        - if [ "$DRONE_TARGET_BRANCH" != "$DRONE_SOURCE_BRANCH" ]; then echo "checking out $DRONE_COMMIT_SHA" && git fetch origin $DRONE_SOURCE_BRANCH && git checkout $DRONE_COMMIT_SHA -b $DRONE_SOURCE_BRANCH; fi
+        - printf "Current commit SHA $(git rev-parse HEAD) \n"
+      environment:
+        GITHUB_TOKEN:
+            from_secret: GITHUB_TOKEN
+      image: alpine/git
+      name: clone
+    - commands:
+        - echo "Source branch is ${DRONE_SOURCE_BRANCH}"
+        - |
+          case "${DRONE_SOURCE_BRANCH}" in
 
-data:
-  unit_tests:
-    enabled: false
+            master|main)
+              echo "The source branch ${DRONE_SOURCE_BRANCH} is allowed to be promoted to ${DRONE_DEPLOY_TO}"
+              ;;
 
-  sonarqube:
-    enabled: false
+            *)
+              echo "The source branch ${DRONE_SOURCE_BRANCH} is NOT allowed to be promoted to ${DRONE_DEPLOY_TO}";
+              drone build stop ${DRONE_REPO} ${DRONE_BUILD_NUMBER}
+          esac
+      depends_on:
+        - clone
+      environment:
+        DRONE_SERVER: https://drone-ci.deliveryhero.net
+        DRONE_TOKEN:
+            from_secret: DRONE_TOKEN
+      image: drone/cli:alpine
+      name: prevent-deploy-from-branch
+    - commands:
+        - |
+          curl --fail --show-error --silent \
+          -H "X-Insert-Key: $NEWRELIC_INSERT_KEY" \
+          -H "Content-Type: application/json" \
+          -d '[{
+              "eventType": "deployment",
+              "revision": "'"${DRONE_COMMIT_SHA}"'",
+              "repo": "'"${DRONE_REPO_NAME}"'",
+              "user": "'"${DRONE_COMMIT_AUTHOR}"'",
+              "buildUrl": "'"${DRONE_BUILD_LINK}"'",
+              "buildNum": "'"${DRONE_BUILD_NUMBER}"'",
+              "branch": "'"${DRONE_BRANCH}"'",
+              "environment": "'"${DRONE_DEPLOY_TO}"'"
+              }]' \
+          --request POST "https://insights-collector.newrelic.com/v1/accounts/$NEWRELIC_ACCOUNT_ID/events"
+      depends_on: null
+      environment:
+        NEWRELIC_ACCOUNT_ID:
+            from_secret: PROD_NEWRELIC_ACCOUNT_ID
+        NEWRELIC_INSERT_KEY:
+            from_secret: PROD_NEWRELIC_INSERT_KEY
+        NEWRELIC_QUERY_KEY:
+            from_secret: NEWRELIC_QUERY_KEY
+        NEWRELIC_REST_API_KEY:
+            from_secret: PROD_NEWRELIC_REST_API_KEY
+        SLACK_WEBHOOK:
+            from_secret: SLACK_WEBHOOK
+      image: curlimages/curl:8.00.1
+      name: newrelic-insights
+trigger:
+    branch:
+        - main
+        - master
+        - dev
+    event:
+        exclude:
+            - pull_request
+            - push
+        include:
+            - promote
+    target:
+        - '*-prod'
+        - prod
+type: docker
+---
+clone:
+    disable: true
+environment:
+    EKS_CLUSTER: talabat-dr-main-cluster
+globals:
+    - ARGO_TOKEN_DEFAULT:
+        from_secret: ARGO_TOKEN_DEFAULT
+      ARGO_TOKEN_WALLET_PROD:
+        from_secret: ARGO_TOKEN_WALLET_PROD
+      ARGO_TOKEN_WALLET_QA:
+        from_secret: ARGO_TOKEN_WALLET_QA
+      GITHUB_APP_ID:
+        from_secret: GITHUB_APP_ID
+      GITHUB_APP_PRIVATE_KEY:
+        from_secret: GITHUB_APP_PRIVATE_KEY
+      GITHUB_TOKEN:
+        from_secret: GITHUB_TOKEN
+    - EKS_CLUSTER:
+        from_secret: DR_EKS_CLUSTER
+      EKS_ROLE_ARN:
+        from_secret: DR_EKS_ROLE_ARN
+    - AWS_ACCESS_KEY_ID:
+        from_secret: DR_AWS_ACCESS_KEY_ID
+      AWS_DEFAULT_REGION:
+        from_secret: DR_AWS_DEFAULT_REGION
+      AWS_SECRET_ACCESS_KEY:
+        from_secret: DR_AWS_SECRET_ACCESS_KEY
+    - NEWRELIC_ACCOUNT_ID:
+        from_secret: DR_NEWRELIC_ACCOUNT_ID
+      NEWRELIC_INSERT_KEY:
+        from_secret: DR_NEWRELIC_INSERT_KEY
+      NEWRELIC_QUERY_KEY:
+        from_secret: NEWRELIC_QUERY_KEY
+      NEWRELIC_REST_API_KEY:
+        from_secret: DR_NEWRELIC_REST_API_KEY
+    - SLACK_WEBHOOK:
+        from_secret: SLACK_WEBHOOK
+    - STS_KEY:
+        from_secret: DR_STS_KEY
+      STS_KEY_ID:
+        from_secret: DR_STS_KEY_ID
+kind: pipeline
+name: dr
+steps:
+    - commands:
+        - env
+        - git clone --branch $DRONE_TARGET_BRANCH $DRONE_REMOTE_URL .
+        - if [ "$DRONE_TARGET_BRANCH" != "$DRONE_SOURCE_BRANCH" ]; then echo "checking out $DRONE_COMMIT_SHA" && git fetch origin $DRONE_SOURCE_BRANCH && git checkout $DRONE_COMMIT_SHA -b $DRONE_SOURCE_BRANCH; fi
+        - printf "Current commit SHA $(git rev-parse HEAD) \n"
+      environment:
+        GITHUB_TOKEN:
+            from_secret: GITHUB_TOKEN
+      image: alpine/git
+      name: clone
+    - commands:
+        - echo "Source branch is ${DRONE_SOURCE_BRANCH}"
+        - |
+          case "${DRONE_SOURCE_BRANCH}" in
 
+            master|main)
+              echo "The source branch ${DRONE_SOURCE_BRANCH} is allowed to be promoted to ${DRONE_DEPLOY_TO}"
+              ;;
 
-  integration_tests:
-    enabled: false
-
-  images:
-    - name: whell-of-misfortune
-      dockerfile: ./Dockerfile
-      repo: sre/wheel
-      use_talabat_github: true
-      add_commit_sha: true
-
-  deploy:
-    qa:
-      - name: whell-of-misfortune
-        type: argo
-        argo_app: whell-of-misfortune
-        namespace: automation
-        path: charts
-
-  filter_branch:
-    qa:
-      - master
-      - main
-      - feature/*
-      - bugfix/*
-      - hotfix/*
-      - fix/*
-      - infra/*
+            *)
+              echo "The source branch ${DRONE_SOURCE_BRANCH} is NOT allowed to be promoted to ${DRONE_DEPLOY_TO}";
+              drone build stop ${DRONE_REPO} ${DRONE_BUILD_NUMBER}
+          esac
+      depends_on:
+        - clone
+      environment:
+        DRONE_SERVER: https://drone-ci.deliveryhero.net
+        DRONE_TOKEN:
+            from_secret: DRONE_TOKEN
+      image: drone/cli:alpine
+      name: prevent-deploy-from-branch
+    - commands:
+        - |
+          curl --fail --show-error --silent \
+          -H "X-Insert-Key: $NEWRELIC_INSERT_KEY" \
+          -H "Content-Type: application/json" \
+          -d '[{
+              "eventType": "deployment",
+              "revision": "'"${DRONE_COMMIT_SHA}"'",
+              "repo": "'"${DRONE_REPO_NAME}"'",
+              "user": "'"${DRONE_COMMIT_AUTHOR}"'",
+              "buildUrl": "'"${DRONE_BUILD_LINK}"'",
+              "buildNum": "'"${DRONE_BUILD_NUMBER}"'",
+              "branch": "'"${DRONE_BRANCH}"'",
+              "environment": "'"${DRONE_DEPLOY_TO}"'"
+              }]' \
+          --request POST "https://insights-collector.newrelic.com/v1/accounts/$NEWRELIC_ACCOUNT_ID/events"
+      depends_on: null
+      environment:
+        NEWRELIC_ACCOUNT_ID:
+            from_secret: DR_NEWRELIC_ACCOUNT_ID
+        NEWRELIC_INSERT_KEY:
+            from_secret: DR_NEWRELIC_INSERT_KEY
+        NEWRELIC_QUERY_KEY:
+            from_secret: NEWRELIC_QUERY_KEY
+        NEWRELIC_REST_API_KEY:
+            from_secret: DR_NEWRELIC_REST_API_KEY
+        SLACK_WEBHOOK:
+            from_secret: SLACK_WEBHOOK
+      image: curlimages/curl:8.00.1
+      name: newrelic-insights
+trigger:
+    branch:
+        - main
+        - master
+        - dev
+    event:
+        exclude:
+            - pull_request
+            - push
+        include:
+            - promote
+    target:
+        - '*-dr'
+        - dr
+type: docker
