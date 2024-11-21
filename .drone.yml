@@ -10,6 +10,7 @@ data:
   sonarqube:
     enabled: false
 
+
   integration_tests:
     enabled: false
 
