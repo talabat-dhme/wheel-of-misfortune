@@ -64,7 +64,7 @@ service:
       ## https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
   startupProbe:
     tcpSocket:
-      port: 8080
+      port: 8000
     initialDelaySeconds: 5
     timeoutSeconds: 2
     periodSeconds: 15
