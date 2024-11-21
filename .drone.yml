@@ -90,18 +90,6 @@ steps:
             from_secret: GITHUB_TOKEN
       image: alpine/git
       name: clone
-    - commands:
-        - export NUGET_PACKAGES=/drone/src/packages
-        - dotnet build --no-restore
-      depends_on:
-        - clone
-      environment:
-        CUSTOM_GITHUB_TOKEN:
-            from_secret: CUSTOM_GITHUB_TOKEN
-        GITHUB_TOKEN:
-            from_secret: GITHUB_TOKEN
-      image: public.ecr.aws/talabat/talabat/dotnet-sdk-ci-tools:6.0
-      name: build
     - depends_on:
         - clone
       environment:
