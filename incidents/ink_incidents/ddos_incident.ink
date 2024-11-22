@@ -44,11 +44,11 @@ HINT: Learn more <a target="_blank" href="https:\/\/dash.cloudflare.com/a24d979a
   
 
 WHAT DO YOU DO NEXT?  
-* [Investigate JA3 across the last week/month] Correlate JA3 activity with the attack timeline. -> create_firewall_rule
-* [Skip JA3 analysis] Proceed without using JA3. -> monitor_traffic
++ [Investigate JA3 across the last week/month] You identified all requests coming from same JA3 fingerprint is correlated to attacks only during last 1 week. -> create_firewall_rule
+* [No need to check JA3 analysis; I’ll just stare at CF and hope for clarity.] -> investigate_ja3
 
 == create_firewall_rule ==
-You create a new Cloudflare firewall rule to match requests with the same JA3 causing the attack.  
+Now You need to create a new Cloudflare firewall rule to match requests with the same JA3 causing the attack.  
 HINT: Use this reference for creating rules:  
 <a href="https:\/\/dash.cloudflare.com/a24d979a90c8bac120ac9b36256f0d41/talabat.com/security/waf/firewall-rules">rule</a>
 WHAT ACTION DO YOU TAKE INITIALLY?  
@@ -69,25 +69,23 @@ HINT: Compare traffic before and after the rule implementation using Cloudflare 
 You monitor the rule for a few minutes and confirm it matches the expected attack throughput.  
 WHAT DO YOU DO NEXT?  
 * [Change the action to block] Block the attack using the firewall rule. -> share_with_security
-* [Continue monitoring] Keep the rule in logging mode for now. -> monitor_traffic
+//* [Continue monitoring] Keep the rule in logging mode for now. -> monitor_traffic
 
 == share_with_security ==
 You share the new firewall rule with the security team for validation and documentation.  
 WHAT DO YOU OBSERVE?  
 * [Most attacks are blocked] The rule is effective. -> evaluate_results
-* [Some requests still pass] Further investigation is needed. -> investigate_remaining_requests
+//* [Some requests still pass] Further investigation is needed. -> investigate_remaining_requests
 
 == investigate_remaining_requests ==
 You observe that some attack requests are bypassing the firewall rules.  
 WHAT DO YOU DO NEXT?  
-* [Refine the firewall rule] Update the rule to better match attack patterns. -> monitor_firewall
-* [Investigate further in Cloudflare] Analyze security events for additional patterns. -> identify_attack_pattern
+* [Refine the firewall rule] Update the rule to better match attack patterns. -> share_with_security
 
 == evaluate_results ==
-The majority of the attack has been mitigated. However, some requests still bypass the firewall rules.  
+The majority of the attack has been mitigated.  
 WHAT IS YOUR NEXT STEP?  
-* [Continue refining security rules] Work on improving the rules to block remaining requests. -> DONE
-* [Escalate to engineering/security] Share findings and collaborate on a long-term solution. -> DONE
+* [Monitor & Escalate to engineering/security] Keep Monitoring and Share findings and collaborate on a long-term solution. -> DONE
 
 == monitor_traffic ==
 You decide to monitor the situation further without taking immediate action.  
