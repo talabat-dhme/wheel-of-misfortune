@@ -1,4 +1,4 @@
-Incident 1: High Error Rate in Android API  
+High Error Rate in Android API  
 Your goal is to investigate and mitigate the issue while ensuring minimal impact on the system.
 
 -> start_investigation
@@ -6,7 +6,7 @@ Your goal is to investigate and mitigate the issue while ensuring minimal impact
 == start_investigation ==
 It is 3 am, and we received an alert for a high error rate in the Android API.  
 WHAT DO YOU DO FIRST?  
-* [Check the Android API APM] Investigate error rates and throughput trends. -> analyze_apm
++ [Check the Android API APM] Investigate error rates and throughput trends. -> analyze_apm
 * [Ignore the alert for now] Decide not to take immediate action. -> ignore_alert
 
 == analyze_apm ==
@@ -24,24 +24,23 @@ WHAT DO YOU FIND?
 == create_incident ==
 You determine that the high error rate impacts order placement.  
 WHAT DO YOU DO NEXT?  
-* [Notify stakeholders] Inform the on-call team and relevant stakeholders. -> assess_impact
-* [Document the issue] Begin drafting an incident report for tracking purposes. -> assess_impact
+* [Identify Attack Pattern] Inform the on-call team and relevant stakeholders. -> identify_attack_pattern
 
 == identify_attack_pattern ==
 You begin identifying the attack pattern using New Relic Transaction Queries and Cloudflare Security Analytics.  
 HINT: Use these references:  
--   <a href="https:\/\/one.newrelic.com/alerts/issue?account=938958&state=ab6c5acf-c9d7-2e32-68f7-63e49703a82c">New Relic Alert</a>
--   <a href="https:\/\/dash.cloudflare.com/a24d979a90c8bac120ac9b36256f0d41/talabat.com/security/analytics">Cloudflare Security Analytics</a>
+-   <a target="_blank" href="https:\/\/one.newrelic.com/alerts/issue?account=938958&state=ab6c5acf-c9d7-2e32-68f7-63e49703a82c">New Relic Alert</a>
+-   <a target="_blank" href="https:\/\/dash.cloudflare.com/a24d979a90c8bac120ac9b36256f0d41/talabat.com/security/analytics">Cloudflare Security Analytics</a>
 
 WHAT DO YOU DISCOVER?  
-* [Attack on `/apiAndroid/v1/AuthToken`] Most attacks target this URI. -> investigate_ja3
++ [Attack on `/apiAndroid/v1/AuthToken`] Most attacks target this URI. -> investigate_ja3
 * [No clear pattern] Continue monitoring traffic. -> monitor_traffic
 
 == investigate_ja3 ==
 You identify that most of the attacks share the same JA3 fingerprint.  
 WHAT IS JA3?  
 JA3 is a method of creating a unique fingerprint for SSL/TLS clients based on the parameters they use during a connection.  
-HINT: Learn more <a href="https:\/\/dash.cloudflare.com/a24d979a90c8bac120ac9b36256f0d41/talabat.com/security/analytics">here</a>
+HINT: Learn more <a target="_blank" href="https:\/\/dash.cloudflare.com/a24d979a90c8bac120ac9b36256f0d41/talabat.com/security/analytics">here</a>
   
 
 WHAT DO YOU DO NEXT?  
@@ -93,13 +92,12 @@ WHAT IS YOUR NEXT STEP?
 == monitor_traffic ==
 You decide to monitor the situation further without taking immediate action.  
 WHAT DO YOU DO NEXT?  
-* [Escalate the issue] Notify the security or engineering team for further support. -> share_with_security
-* [Wait for more signs of impact] Continue monitoring without escalation. -> DONE
+* [Escalate the issue] Notify the security or engineering team for further support. -> identify_attack_pattern
 
 == ignore_alert ==
 Ignoring the alert could lead to severe consequences.  
 ARE YOU SURE?  
-* [Go back and take action] -> start_investigation
++ [Go back and take action] -> start_investigation
 * [Yes, ignore for now] -> DONE
 
 == DONE ==
