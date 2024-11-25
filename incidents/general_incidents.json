@@ -19,7 +19,7 @@
     },
     {
         "ID": "4",
-        "title": "pro-api Apdex Abyss",
+        "title": "Pro-api Apdex Abyss",
         "inkstory": "incidents/ink_incidents/pro-api-apdex-abyss.json",
         "scenario": "You've received alerts that the Apdex score for the pro-api has dropped below 70%."
     },
