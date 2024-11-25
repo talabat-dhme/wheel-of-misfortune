@@ -31,14 +31,15 @@ You've received alerts that the error rate for iPhones has increased by 10%.
 
 === check_recent_release ===
 <b>Was there a release during the day?</b>
-+ [Check tlb_production_deployments. Turns out, there was no release. It's not a release bug, it's just your lucky day!] -> check_endpoints
++ [Check <a target="_blank" href="https:\/\/deliveryhero.enterprise.slack.com/archives/C026LKZNDJB">tlb_production_deployments</a> . Turns out, there was no release. It's not a release bug, it's just your lucky day!] -> check_endpoints
++ [Check <a target="_blank" href="https:\/\/argo.dhhmena.com/applications/iphoneapi-failover?resource=">Argo</a> . Turns out, there was no release. It's not a release bug, it's just your lucky day!] -> check_endpoints
 + [Dig deeper. Contain the incident and dive in.] -> check_endpoints
 * [Close it. It's probably temp errors. (Spoiler: It's not.)]
     -> incident_neglect_check_recent_release -> END 
 
 === check_endpoints ===
 <b>Is the high error rate across all endpoints or specific ones?</b>
-+ [Across all endpoints. Great, the mystery deepens.] -> check_fwf_flag
++ [Across all endpoints. Great, the mystery deepens,<a target="_blank" href="https:\/\/onenr.io/0yw4PkO4Vw3">NR Query</a> ] -> check_fwf_flag
 
 === check_fwf_flag ===
 <b>Is there an FWF flag just toggled today?</b>
@@ -47,10 +48,13 @@ You've received alerts that the error rate for iPhones has increased by 10%.
 
 === check_clusters ===
 <b>Is the error rate increased across all clusters?</b>
-+ [Nope, just the main EKS cluster. ] -> check_pod_impact
++ [Nope, just the main EKS cluster. <a target="_blank" href="https:\/\/onenr.io/0Zw0qgxGERv">NR Query</a> ] -> check_pod_impact
+
 
 === check_pod_impact ===
 <b>Is the error rate only for a specific pod/host?</b>
+<a target="_blank" href="https:\/\/onenr.io/0OQMMPbB9QG">NR Query</a>
+
 + [Yes, one pod is throwing error. (Typical for windows pods ;) )] -> update_monitoring_state
 
 === update_monitoring_state ===
