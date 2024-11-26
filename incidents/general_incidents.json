@@ -1,38 +1,9 @@
 [
-    {
-        "ID": "1",
-        "title": "Increase in response time",
-        "inkstory": "incidents/ink_incidents/incident1.json",
-        "scenario": "You've received alerts that Home API Gateway start having increase in response time."
-    },
+
     {
         "ID": "2",
         "title": "Checkout screen SLO has dropped by 20%.",
         "inkstory": "incidents/ink_incidents/incident2.json",
         "scenario": "You've received alerts that the checkout screen SLO has dropped by 20%."
-    },
-    {
-        "ID": "3",
-        "title": "iPhone high error rate 🛠️📱",
-        "inkstory": "incidents/ink_incidents/iphone_errorpocalypse.json",
-        "scenario": "You've received alerts that iPhone high error rate 🛠️📱"
-    },
-    {
-        "ID": "4",
-        "title": "Pro-api Apdex Abyss",
-        "inkstory": "incidents/ink_incidents/pro-api-apdex-abyss.json",
-        "scenario": "You've received alerts that the Apdex score for the pro-api has dropped below 70%."
-    },
-    {
-        "ID": "5",
-        "title": "The DH Data Drama 🚨",
-        "inkstory": "incidents/ink_incidents/dh_data_drama.json",
-        "scenario": "The DH Data Drama 🚨"
-    },
-    {
-        "ID": "6",
-        "title": "DDOS 🚨",
-        "inkstory": "incidents/ink_incidents/ddos_incident.json",
-        "scenario": "DDOS 🚨"
     }
 ]
