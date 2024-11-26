@@ -1,8 +1,9 @@
 # Incident 5: The DH Data Drama 🚨
+# https://deliveryhero.slack.com/archives/C03FHFH1NLX/p1728905492226789?thread_ts=1728903493.543469&cid=C03FHFH1NLX
 -> start
 
 === start ===
-You've received alerts: Integration with DH is broken! Some data from specific vendors is missing. Your heart skips a beat, your palms get sweaty, and your coffee suddenly tastes cold. It's another on-call adventure! 😱
+You've received Manual escalation: Integration with DH is broken! Some updates of the delivery area stream for specific vendors is missing. Your heart skips a beat, your palms get sweaty, and your coffee suddenly tastes cold. It's another on-call adventure! 😱
 
 + [Acknowledge like a Hero engineer. (Time to save the day!)] -> check_customer_impact_question
 * [No, I’m busy coding. Someone else will pick this up, right? (Don't be that person!)] -> incident_neglect_start
@@ -18,7 +19,7 @@ Is there any order loss or poor customer experience? Are customers seeing blank 
 === check_customer_impact_answer ===
 We can check the impact on orders by checking the <a target="_blank" href="https:\/\/onenr.io/0dQeqgG1rQe" style="color: blue;text-decoration: underline;">Shopping Dashboard</a>. (Fingers crossed!)
 
-+ [No drop in orders, but customer experience might be impacted. Time to dig deeper. (That's a relief, but the mystery continues...)] -> create_incident
++ [No drop in orders, but customer experience might be impacted. Time to dig deeper.] -> create_incident
 
 === create_incident ===
 Still create an incident?
@@ -76,9 +77,9 @@ We can check FWF updates by looking at the <a target="_blank" href="https:\/\/de
 + [Nope, all flags are unchanged. (That's a relief!)] -> check_cloudwatch
 
 === check_cloudwatch ===
-<b>Check CloudWatch metrics for the API Gateway and Lambda logs? (Time to dive into the logs!)</b>
+<b>Check CloudWatch metrics for the API Gateway and Lambda logs with DH help?</b>
 
-+ [Metrics look good. No increase in error rates. (That's a good sign!)] -> check_client_response
++ [We found there is increase in error rates from the client (DH) while calling our API.] -> check_client_response
 * [Who has time for metrics? Let’s skip to conclusions.] -> incident_neglect_check_cloudwatch
     -> END
 
